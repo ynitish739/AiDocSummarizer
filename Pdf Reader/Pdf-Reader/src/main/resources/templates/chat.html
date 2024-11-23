@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chat Interface</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            background-color: #000000; /* Completely black background */
+            overflow: hidden; /* Prevent body scrolling */
+            color: #FFFFFF; /* White text */
+        }
+
+        .chat-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            max-width: 800px; /* Limit max width for better layout on large screens */
+            max-height: 90vh;
+            background-color: #1c1c1c; /* Dark gray background for the chat container */
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.5); /* Slight shadow for depth */
+            border-radius: 10px;
+            border: 1px solid #2a2a2a; /* Subtle border for definition */
+        }
+
+        .chat-box {
+            flex-grow: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            color: #FFFFFF; /* White text inside chat box */
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 10px;
+            border-radius: 10px;
+            word-wrap: break-word;
+            font-size: 14px;
+        }
+
+        .message.user {
+            background-color: #0078D7; /* Bright blue background for user messages */
+            color: #FFFFFF; /* White text */
+            align-self: flex-end;
+        }
+
+        .message.bot {
+            background-color: #1E3A5F; /* Dark blue background for bot messages */
+            color: #FFFFFF; /* Black text for bot messages */
+            align-self: flex-start;
+            padding: 15px;
+            border-left: 4px solid #0078D7; /* Blue accent on bot messages */
+            white-space: pre-line; /* Preserve line breaks */
+        }
+
+        .message.bot ul {
+            margin: 10px 0;
+            padding-left: 20px;
+            list-style-type: disc;
+        }
+
+        .message.bot li {
+            margin-bottom: 5px;
+            line-height: 1.5;
+        }
+
+        .input-container {
+            display: flex;
+            padding: 10px;
+            border-top: 1px solid #333333; /* Subtle border to separate input area */
+            background-color: #1c1c1c; /* Match chat container background */
+        }
+
+        .input-container input {
+            width: 80%;
+            padding: 10px;
+            border: 1px solid #555555; /* Darker border for the input box */
+            border-radius: 20px;
+            font-size: 14px;
+            background-color: #000000; /* Black input field */
+            color: #FFFFFF; /* White text */
+        }
+
+        .input-container input::placeholder {
+            color: #AAAAAA; /* Light gray placeholder text */
+        }
+
+        .input-container button {
+            width: 15%;
+            padding: 10px;
+            margin-left: 10px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s ease;
+        }
+
+        .input-container button:hover {
+            background-color: #45a049;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="chat-container">
+    <div class="chat-box" id="chatBox">
+        <!-- Messages will be displayed here -->
+    </div>
+    <div class="input-container">
+        <input type="text" id="userInput" placeholder="Type a message..." />
+        <button onclick="sendMessage()">Send</button>
+    </div>
+</div>
+
+<script>
+    const chatBox = document.getElementById('chatBox');
+    const userInput = document.getElementById('userInput');
+
+    // Function to append the user's message and bot's response
+    function appendMessage(content, sender) {
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', sender);
+
+    if (sender === 'bot') {
+        // Convert Markdown to HTML for bot responses
+        messageDiv.innerHTML = marked.parse(content);
+    } else {
+        messageDiv.textContent = content;
+    }
+
+    chatBox.appendChild(messageDiv);
+
+    // Scroll to the bottom of the chat box
+    chatBox.scrollTop = chatBox.scrollHeight;
+}
+
+
+    // Function to send the message and interact with the backend
+    function sendMessage() {
+        const message = userInput.value.trim();
+        if (message === '') return;
+
+        // Append user's message
+        appendMessage(message, 'user');
+
+        // Clear input field
+        userInput.value = '';
+
+        // Send the message to the backend
+        fetch("/ask?query=" + encodeURIComponent(message), {
+            method: "POST"
+        })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error("Network response was not ok");
+                }
+                return response.text(); // Expect plain text response
+            })
+            .then(data => {
+                // Append bot's response
+                appendMessage(data, 'bot');
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                appendMessage("Sorry, something went wrong.", 'bot');
+            });
+    }
+
+    // Optional: Allow pressing Enter to send message
+    userInput.addEventListener('keypress', (event) => {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    });
+</script>
+</body>
+</html>
